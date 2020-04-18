@@ -1,6 +1,6 @@
 # reinforcement_learning
 Algorithm:
-Vanilla Policy Gradient(REINFORCE)
-Actor-critic
-A3C
+1. Vanilla Policy Gradient(REINFORCE)
+2. Actor-critic
+3. A3C
 ...
