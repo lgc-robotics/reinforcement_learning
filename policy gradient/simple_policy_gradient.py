@@ -57,16 +57,20 @@ class PolicyGradient:
 
     def select_action(self,state):
         # (state_dim,) => (batch, state_dim) and batch=1
-        state=state[np.newaxis,:]
-        state=tf.convert_to_tensor(state, dtype=tf.float32)
-
+        state = state[np.newaxis, :]
+        state = tf.convert_to_tensor(state, dtype=tf.float32)
         # (batch, action_num)
-        probs=self.model(state)
-
+        logits = self.model(state)
         # tf.random.categorical return a (batch,1) matrix
-        a=tf.random.categorical(probs,1)[0,0]
+        a = tf.random.categorical(logits, 1)[0, 0]
+        # Tensor to python scalar
+        a = a.numpy()
 
-        return a.numpy()
+        """
+        probs = tf.nn.softmax(logits)
+        a = np.random.choice(np.arange(self.action_num), p=probs.numpy()[0])
+        """
+        return a
 
     def learn(self):
         with tf.GradientTape() as tape:
