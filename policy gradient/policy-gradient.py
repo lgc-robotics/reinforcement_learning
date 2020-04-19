@@ -58,12 +58,18 @@ class PolicyGradient:
         state = tf.convert_to_tensor(state, dtype=tf.float32)
 
         # (batch, action_num)
-        probs = self.model(state)
+        logits = self.model(state)
 
+        """
         # tf.random.categorical return a (batch,1) matrix
-        a = tf.random.categorical(probs, 1)[0, 0]
+        a = tf.random.categorical(logits, 1)[0, 0]
+        # Tensor to python scalar
+        a = a.numpy()
+        """
 
-        return a.numpy()
+        probs = tf.nn.softmax(logits)
+        a = np.random.choice(np.arange(self.action_num), p=probs.numpy()[0])
+        return a
 
     def _sample_trajectories(self,env,itr):
         timesteps_this_batch = 0
