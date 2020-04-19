@@ -162,7 +162,7 @@ class ActorCritic:
         grads = tape.gradient(loss,self.actor.trainable_variables)
         self.optimizer_actor.apply_gradients(zip(grads,self.actor.trainable_variables))
 
-    def train_policy_gradient(self,env,seed,n_iter):
+    def train_actor_critic(self,env,seed,n_iter):
         # reproducible
         np.random.seed(seed)
         tf.random.set_seed(seed)
@@ -193,7 +193,7 @@ if __name__=='__main__':
                         max_traj_length=500,
                         batch_size=1000)
 
-    agent.train_policy_gradient(env, seed=116, n_iter=100)
+    agent.train_actor_critic(env, seed=116, n_iter=100)
 
     plt.figure()
     plt.plot(agent.episode_reward)
