@@ -61,10 +61,18 @@ class ActorCritic:
         ob = ob[np.newaxis, :]
         ob = tf.convert_to_tensor(ob, dtype=tf.float32)
         # (batch, action_num)
-        probs = self.actor(ob)
+        logits = self.actor(ob)
+
+        """
         # tf.random.categorical return a (batch,1) matrix
-        a = tf.random.categorical(probs, 1)[0, 0]
-        return a.numpy()
+        a = tf.random.categorical(logits, 1)[0, 0]
+        # Tensor to python scalar
+        a=a.numpy()
+        """
+
+        probs = tf.nn.softmax(logits)
+        a = np.random.choice(np.arange(self.action_num), p=probs.numpy()[0])
+        return a
 
     def sample_trajectories(self,env,itr):
         timesteps_this_batch = 0
