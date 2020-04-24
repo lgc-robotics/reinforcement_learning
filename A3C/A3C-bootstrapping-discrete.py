@@ -6,7 +6,7 @@ modifying function self.sample_action.
 
 Reference:
 ----------
-Tensorlayer: https://github.com/tensorlayer/tensorlayer/blob/master/examples/reinforcement_learning/tutorial_AC.py
+Tensorlayer: https://github.com/tensorlayer/tensorlayer/blob/master/examples/reinforcement_learning/tutorial_A3C.py
 MorvanZhou's tutorial: https://morvanzhou.github.io/tutorials/
 
 Environment:
