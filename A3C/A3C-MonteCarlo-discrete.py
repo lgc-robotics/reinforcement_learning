@@ -1,3 +1,25 @@
+"""
+Algorithm:
+----------
+A3C algorithm.
+
+Reference:
+----------
+Tensorlayer: https://github.com/tensorlayer/tensorlayer/blob/master/examples/reinforcement_learning/tutorial_AC.py
+MorvanZhou's tutorial: https://morvanzhou.github.io/tutorials/
+
+Environment:
+------------
+CartPole-v0
+CartPole-v1
+#MountainCar-v0
+
+Prerequisites:
+--------------
+tensorflow 2
+gym
+
+"""
 import tensorflow as tf
 import tensorflow_probability as tfp
 from tensorflow.keras.layers import Dense,Input
