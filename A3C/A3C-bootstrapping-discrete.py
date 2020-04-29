@@ -31,15 +31,14 @@ import threading
 import multiprocessing
 import matplotlib.pyplot as plt
 
-ENV_NAME = 'CartPole-v0'
+ENV_NAME = 'CartPole-v1'
 N_LAYERS = [96]
-LR_CRITIC = 1e-3
+LR_CRITIC = 1e-2
 LR_ACTOR = 1e-3
-N_STEPS = 10
+N_STEPS = 30
 GAMMA = 0.99
-ENTROPY_BETA=0.05
-CLIP_GRADIENT=50
-MAX_GLOBAL_EPISODES = 1000
+ENTROPY_BETA=0.01
+MAX_GLOBAL_EPISODES = 1500
 NUM_WORKERS = 4  # multiprocessing.cpu_count() can return the workers of your cpu
 RENDER = False
 SEED = 116
@@ -83,7 +82,6 @@ class ActorCritic(object):
             # tensor scalar
             critic_loss=tf.math.reduce_mean(tf.math.square(advantages))
         critic_grad=tape.gradient(critic_loss,self.critic.trainable_variables)
-        #critic_grad = [tf.clip_by_value(grad, -CLIP_GRADIENT, CLIP_GRADIENT) for grad in critic_grad]
         master.share_critic_optimizer.apply_gradients(zip(critic_grad,master.share_ACnet.critic.trainable_variables))
 
         """update actor"""
@@ -92,13 +90,12 @@ class ActorCritic(object):
             logits = self.actor(observations)
             prob = tf.nn.softmax(logits)
             # shape (batch, 1)
-            neg_log_prob = tf.math.reduce_sum(-tf.math.log(prob+1e-10) * tf.one_hot(actions, depth=self.action_num), axis=1)
-            # entropy to encourage exploration, output shape: (1,1)
-            entropy = -tf.math.reduce_mean(prob*tf.math.log(prob+1e-10))
+            log_prob = tf.math.reduce_sum(tf.math.log(prob+1e-10) * tf.one_hot(actions, depth=self.action_num), axis=1)
+            # entropy to encourage exploration, output shape: (batch,1)
+            entropy = -tf.math.reduce_sum(prob*tf.math.log(prob+1e-10),axis=1)
             # loss
-            actor_loss=tf.reduce_mean(neg_log_prob*advantages)+ENTROPY_BETA*entropy
+            actor_loss=tf.reduce_mean(-advantages*log_prob-ENTROPY_BETA*entropy)
         actor_grad=tape.gradient(actor_loss,self.actor.trainable_variables)
-        #actor_grad=[tf.clip_by_value(grad,-CLIP_GRADIENT,CLIP_GRADIENT) for grad in actor_grad]
         master.share_actor_optimizer.apply_gradients(zip(actor_grad,master.share_ACnet.actor.trainable_variables))
 
     def pull_global(self,master):
