@@ -21,6 +21,30 @@ gym
 
 """
 
+"""
+Algorithm:
+----------
+A3C algorithm. This code can be used to continuous action space game by
+modifying function self.sample_action.
+
+Reference:
+----------
+Tensorlayer: https://github.com/tensorlayer/tensorlayer/blob/master/examples/reinforcement_learning/tutorial_A3C.py
+MorvanZhou's tutorial: https://morvanzhou.github.io/tutorials/
+
+Environment:
+------------
+CartPole-v0
+CartPole-v1
+#MountainCar-v0
+
+Prerequisites:
+--------------
+tensorflow 2
+gym
+
+"""
+
 import tensorflow as tf
 from tensorflow.keras.layers import Dense,Input
 import numpy as np
@@ -31,12 +55,13 @@ import matplotlib.pyplot as plt
 
 ENV_NAME = 'CartPole-v1'
 N_LAYERS = [96]
-LR_CRITIC = 1e-3
+LR_CRITIC = 1e-2
 LR_ACTOR = 1e-3
+N_STEPS = np.inf # default: 10
 GAMMA = 0.99
 ENTROPY_BETA=0.01
 MAX_GLOBAL_EPISODES = 1500
-NUM_WORKERS = 4  # multiprocessing.cpu_count() can return the workers of your cpu
+NUM_WORKERS = multiprocessing.cpu_count()
 RENDER = False
 SEED = 116
 
@@ -70,12 +95,12 @@ class ActorCritic(object):
         action = np.random.choice(np.arange(self.action_num), p=probs.numpy()[0])
         return action
 
-    def update_global(self,observations,actions,rewards_to_go,master):
+    def update_global(self,observations,actions,n_step_returns,master):
         """update critic"""
         with tf.GradientTape() as tape:
             # shape: (batch, 1)
             vs=self.critic(observations)
-            advantages=rewards_to_go-vs
+            advantages=n_step_returns-vs
             # tensor scalar
             critic_loss=tf.math.reduce_mean(tf.math.square(advantages))
         critic_grad=tape.gradient(critic_loss,self.critic.trainable_variables)
@@ -91,7 +116,7 @@ class ActorCritic(object):
             # entropy to encourage exploration, output shape: (batch,1)
             entropy = -tf.math.reduce_sum(prob*tf.math.log(prob+1e-10),axis=1)
             # loss
-            actor_loss=tf.reduce_mean(-log_prob*advantages-ENTROPY_BETA*entropy)
+            actor_loss=tf.reduce_mean(-advantages*log_prob-ENTROPY_BETA*entropy)
         actor_grad=tape.gradient(actor_loss,self.actor.trainable_variables)
         master.share_actor_optimizer.apply_gradients(zip(actor_grad,master.share_ACnet.actor.trainable_variables))
 
@@ -125,26 +150,33 @@ class Worker(object):
                 observation_buffer.append(ob)
                 action_buffer.append(ac)
                 reward_buffer.append(rew)
-                ob = ob_
-                if done:
-                    rewards_to_go = []
-                    reward_sum = 0
+
+                if len(reward_buffer)==N_STEPS or done:
+                    if done:
+                        v_ = 0.
+                    else:
+                        v_ = self.local_AC.critic(ob_[np.newaxis,:])[0,0] # (1,1) => scalar
+                        v_ = v_.numpy()
+
+                    n_step_returns = []
                     for r in reward_buffer[::-1]:
-                        reward_sum = r+ GAMMA * reward_sum
-                        rewards_to_go.append(reward_sum)
-                    rewards_to_go.reverse()
+                        v_ = r+ GAMMA * v_
+                        n_step_returns.append(v_)
+                    n_step_returns.reverse()
 
                     # list => Tensor (batch, dim)
                     observation_buffer=tf.convert_to_tensor(np.vstack(observation_buffer),dtype=tf.float32)
-                    rewards_to_go=tf.convert_to_tensor(np.vstack(rewards_to_go),dtype=tf.float32)
+                    #action_buffer=tf.convert_to_tensor(np.vstack(action_buffer),dtype=tf.float32)
+                    n_step_returns=tf.convert_to_tensor(np.vstack(n_step_returns),dtype=tf.float32)
 
                     # update global networks
-                    self.local_AC.update_global(observation_buffer,action_buffer,rewards_to_go,master)
+                    self.local_AC.update_global(observation_buffer,action_buffer,n_step_returns,master)
                     observation_buffer,action_buffer,reward_buffer=[],[],[]
 
                     # update local network
                     self.local_AC.pull_global(master)
-
+                ob = ob_
+                if done:
                     print("Training | {}, Episode:{}/{} | Episode Reward: {:.1f}".format(
                         self.work_name,master.global_episodes,MAX_GLOBAL_EPISODES,ep_r))
                     master.global_episodes += 1
