@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tensorflow.keras.layers import Dense, Input
-from ddpg.buffer import ReplayBuffer
+from buffer import ReplayBuffer
 
 class DDPG():
     def __init__(self,env,h_layers=[64,64],seed=0,epochs=100,steps_per_epoch=4000,max_epoch_len=1000,
