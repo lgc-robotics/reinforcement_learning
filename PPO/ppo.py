@@ -7,8 +7,8 @@ import tensorflow as tf
 from tensorflow.keras.layers import Dense, Input
 import numpy as np
 import matplotlib.pyplot as plt
-from rl_toolbox.ppo.buffer import PPOBuffer
-from rl_toolbox.ppo.distributions import DiagonalGaussian
+from buffer import PPOBuffer
+from distributions import DiagonalGaussian
 
 class PPO(object):
     def __init__(self, env, h_layers=[64, 64], seed=0, steps_per_epoch=4000, epochs=50, gamma=0.99, lam=0.97,
